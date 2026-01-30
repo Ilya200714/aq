@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mega P2P Chat</title>
+    <title>Mega P2P Voice Chat</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
@@ -19,9 +19,12 @@
 
         <div id="setup-screen" class="centered" style="display: none;">
             <div class="glass-card">
-                <h2 id="welcome-msg"></h2>
-                <input type="text" id="room-id" placeholder="Название комнаты...">
-                <button id="join-btn">Создать / Присоединиться</button>
+                <h2 id="welcome-msg">Привет!</h2>
+                <input type="text" id="room-id" placeholder="ID комнаты (например, TOP1)">
+                <div style="display: flex; gap: 10px; margin-top: 20px; justify-content: center;">
+                    <button id="create-btn" style="background: #4caf50;">Создать</button>
+                    <button id="join-btn">Присоединиться</button>
+                </div>
             </div>
         </div>
 
@@ -29,37 +32,25 @@
             <div class="main-layout">
                 <div class="video-section">
                     <div id="user-grid"></div>
-                    <div id="canvas-area">
-                        <canvas id="shared-canvas"></canvas>
-                        <div class="canvas-controls">
-                            <input type="color" id="line-color" value="#3d5afe">
-                            <button onclick="clearCanvas()">🗑️</button>
-                        </div>
-                    </div>
                 </div>
 
                 <div class="side-panel">
                     <div class="room-header">
-                        <span id="room-name-display"></span>
-                        <button id="copy-link-btn">🔗 ID</button>
+                        <span id="room-name-display">Комната</span>
                     </div>
                     <div id="chat-messages"></div>
-                    <div id="soundboard">
-                        <button onclick="sendEmoji('😂')">😂</button>
-                        <button onclick="sendEmoji('🔥')">🔥</button>
-                    </div>
-                    <div class="chat-input-area" style="display:flex; gap:5px; padding:10px;">
-                        <input type="text" id="chat-input" placeholder="Сообщение..." style="flex:1;">
+                    <div class="chat-input-area" style="display: flex; gap: 5px; padding: 10px;">
+                        <input type="text" id="chat-input" placeholder="Сообщение..." style="flex: 1;">
                         <button id="send-msg-btn">➤</button>
                     </div>
                 </div>
             </div>
 
             <div class="bottom-controls">
-                <button onclick="toggleMic()" id="mic-btn">🎤</button>
-                <button onclick="toggleCam()" id="cam-btn">📷</button>
+                <button id="mic-btn">🎤</button>
+                <button id="cam-btn">📷</button>
                 <button id="screen-btn">🖥️ Экран</button>
-                <button onclick="location.reload()" class="exit">🛑</button>
+                <button onclick="location.reload()" style="background: #f44336;">🛑 Выйти</button>
             </div>
         </div>
     </div>

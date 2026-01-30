@@ -1,98 +1,117 @@
-const prefix = "mega-v-room-";
-let peer, myStream, screenStream;
+const prefix = "mega-v-";
+let peer, myStream;
 let dataConnections = {};
-let currentUser = { nick: localStorage.getItem('nick') || '' };
+let currentUser = { nick: localStorage.getItem('nick') || 'Друг' };
 
-// Вход
-const saveBtn = document.getElementById('save-profile-btn');
-if (saveBtn) {
-    saveBtn.onclick = () => {
-        const nick = document.getElementById('user-nickname').value;
+// Вспомогательная функция для безопасного поиска элементов
+const $ = (id) => document.getElementById(id);
+
+// 1. ПЕРЕХОД ИЗ ВХОДА В ЛОББИ
+if ($('save-profile-btn')) {
+    $('save-profile-btn').onclick = () => {
+        const nick = $('user-nickname').value;
         if (!nick) return alert("Введите ник!");
         currentUser.nick = nick;
         localStorage.setItem('nick', nick);
-        document.getElementById('auth-screen').style.display = 'none';
-        document.getElementById('setup-screen').style.display = 'flex';
-        document.getElementById('welcome-msg').innerText = `Привет, ${nick}!`;
+        $('auth-screen').style.display = 'none';
+        $('setup-screen').style.display = 'flex';
+        $('welcome-msg').innerText = `Привет, ${nick}!`;
     };
 }
 
-// Подключение
-document.getElementById('join-btn').onclick = async () => {
-    const room = document.getElementById('room-id').value;
-    if (!room) return alert("Введите ID комнаты");
-
+// 2. ИНИЦИАЛИЗАЦИЯ КАМЕРЫ И МИКРОФОНА
+async function startMedia() {
     try {
         myStream = await navigator.mediaDevices.getUserMedia({ 
             audio: { echoCancellation: true, noiseSuppression: true }, 
             video: true 
         });
+        // По умолчанию камера выключена, только микрофон
         myStream.getVideoTracks()[0].enabled = false;
-
-        // Генерация случайного ID, чтобы избежать конфликтов PeerJS
-        const myPeerId = prefix + room + "-" + Math.random().toString(36).substr(2, 5);
-        peer = new Peer(myPeerId, {
-            config: {'iceServers': [{ url: 'stun:stun.l.google.com:19302' }]}
-        });
-
-        peer.on('open', (id) => {
-            startSession(room);
-            addCard(currentUser.nick, myStream, true, id);
-        });
-
-        peer.on('call', call => {
-            call.answer(myStream);
-            call.on('stream', remoteStream => addCard(call.metadata?.nick || "Друг", remoteStream, false, call.peer));
-        });
-
-        peer.on('connection', conn => setupData(conn));
-    } catch (e) { alert("Ошибка доступа: " + e.message); }
-};
-
-function startSession(room) {
-    document.getElementById('setup-screen').style.display = 'none';
-    document.getElementById('chat-screen').style.display = 'block';
-    document.getElementById('room-name-display').innerText = room;
+        return true;
+    } catch (e) {
+        alert("Ошибка доступа к микрофону/камере. Проверь разрешения в браузере!");
+        return false;
+    }
 }
 
+// 3. ЛОГИКА СОЗДАНИЯ И ПРИСОЕДИНЕНИЯ
+const initPeer = (myId, isHost, roomName) => {
+    peer = new Peer(myId, {
+        config: {'iceServers': [{ url: 'stun:stun.l.google.com:19302' }]}
+    });
+
+    peer.on('open', (id) => {
+        console.log("Мой ID в сети:", id);
+        $('setup-screen').style.display = 'none';
+        $('chat-screen').style.display = 'block';
+        $('room-name-display').innerText = "Комната: " + roomName;
+        addCard(currentUser.nick, myStream, true, id);
+
+        if (!isHost) {
+            // Если мы гость — подключаемся к хосту (создателю)
+            const hostId = prefix + roomName;
+            const call = peer.call(hostId, myStream, {metadata: {nick: currentUser.nick}});
+            call.on('stream', remoteStream => addCard("Создатель", remoteStream, false, hostId));
+            setupData(peer.connect(hostId));
+        }
+    });
+
+    peer.on('call', call => {
+        call.answer(myStream);
+        call.on('stream', stream => addCard(call.metadata?.nick || "Друг", stream, false, call.peer));
+    });
+
+    peer.on('connection', conn => setupData(conn));
+    
+    peer.on('error', err => {
+        console.error("Ошибка PeerJS:", err);
+        if (err.type === 'unavailable-id') alert("Эта комната уже занята или создана!");
+    });
+};
+
+if ($('create-btn')) {
+    $('create-btn').onclick = async () => {
+        const room = $('room-id').value;
+        if (!room) return alert("Введите ID комнаты!");
+        if (await startMedia()) initPeer(prefix + room, true, room);
+    };
+}
+
+if ($('join-btn')) {
+    $('join-btn').onclick = async () => {
+        const room = $('room-id').value;
+        if (!room) return alert("Введите ID комнаты!");
+        if (await startMedia()) {
+            const randomId = prefix + room + "-" + Math.random().toString(36).substr(2, 5);
+            initPeer(randomId, false, room);
+        }
+    };
+}
+
+// 4. ФУНКЦИИ ИНТЕРФЕЙСА
 function addCard(nick, stream, isMe, id) {
-    if (document.getElementById('card-'+id)) return;
-    const grid = document.getElementById('user-grid');
+    if ($('card-'+id)) return;
+    const grid = $('user-grid');
     const card = document.createElement('div');
     card.id = 'card-'+id;
     card.className = 'avatar-card';
-    card.innerHTML = `<div style="position:absolute;top:5px;left:5px;background:rgba(0,0,0,0.5);padding:2px 5px;font-size:12px;">${nick}</div>`;
+    card.style.background = "#1a1a1a";
+    card.style.borderRadius = "15px";
+    card.style.overflow = "hidden";
+    card.style.position = "relative";
+    card.innerHTML = `<div style="position:absolute;top:10px;left:10px;z-index:10;background:rgba(0,0,0,0.5);padding:2px 10px;border-radius:5px;">${nick}</div>`;
 
     const video = document.createElement('video');
     video.srcObject = stream;
     video.autoplay = true;
     video.muted = isMe;
-    video.id = 'v-'+id;
+    video.style.width = "100%";
+    video.style.height = "100%";
+    video.style.objectFit = "cover";
+
     card.appendChild(video);
     grid.appendChild(card);
-}
-
-// Безопасное назначение кнопок (исправляет твою ошибку)
-const sendBtn = document.getElementById('send-msg-btn');
-if (sendBtn) {
-    sendBtn.onclick = () => {
-        const input = document.getElementById('chat-input');
-        if (!input.value) return;
-        const data = { type: 'chat', text: input.value, nick: currentUser.nick };
-        Object.values(dataConnections).forEach(c => c.send(data));
-        appendMessage(data, true);
-        input.value = "";
-    };
-}
-
-const screenBtn = document.getElementById('screen-btn');
-if (screenBtn) {
-    screenBtn.onclick = async () => {
-        try {
-            screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-            document.getElementById('v-' + peer.id).srcObject = screenStream;
-        } catch (e) { console.log("Стрим отменен"); }
-    };
 }
 
 function setupData(conn) {
@@ -103,21 +122,38 @@ function setupData(conn) {
 }
 
 function appendMessage(data, isMe) {
-    const chat = document.getElementById('chat-messages');
-    const msg = document.createElement('div');
-    msg.style.margin = "5px 0";
-    msg.style.textAlign = isMe ? "right" : "left";
-    msg.innerHTML = `<span style="background:${isMe?'#3d5afe':'#333'};padding:5px 10px;border-radius:10px;">${data.text}</span>`;
-    chat.appendChild(msg);
-    chat.scrollTop = chat.scrollHeight;
+    const msgArea = $('chat-messages');
+    const div = document.createElement('div');
+    div.style.textAlign = isMe ? 'right' : 'left';
+    div.innerHTML = `<p style="display:inline-block;background:${isMe?'#3d5afe':'#444'};padding:8px 12px;border-radius:10px;margin:5px;">${isMe?'':data.nick+': '}${data.text}</p>`;
+    msgArea.appendChild(div);
+    msgArea.scrollTop = msgArea.scrollHeight;
 }
 
-function toggleMic() {
-    const t = myStream.getAudioTracks()[0];
-    t.enabled = !t.enabled;
+if ($('send-msg-btn')) {
+    $('send-msg-btn').onclick = () => {
+        const val = $('chat-input').value;
+        if (!val) return;
+        const data = { type: 'chat', text: val, nick: currentUser.nick };
+        Object.values(dataConnections).forEach(c => c.send(data));
+        appendMessage(data, true);
+        $('chat-input').value = "";
+    };
 }
 
-function toggleCam() {
-    const t = myStream.getVideoTracks()[0];
-    t.enabled = !t.enabled;
+// Управление микрофоном и камерой
+if ($('mic-btn')) {
+    $('mic-btn').onclick = () => {
+        const audio = myStream.getAudioTracks()[0];
+        audio.enabled = !audio.enabled;
+        $('mic-btn').innerText = audio.enabled ? '🎤' : '🔇';
+    };
+}
+
+if ($('cam-btn')) {
+    $('cam-btn').onclick = () => {
+        const video = myStream.getVideoTracks()[0];
+        video.enabled = !video.enabled;
+        $('cam-btn').innerText = video.enabled ? '📷' : '❌';
+    };
 }
