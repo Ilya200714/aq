@@ -2,196 +2,596 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>TITAN ETERNAL - OMNI CONNECT</title>
+    <title>TITAN ETERNAL - FINAL DESTINY</title>
     <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #020205; --accent: #00f2ff; --green: #39ff14; --red: #ff3131; --text: #e0e0ff; }
+        :root { 
+            --bg: #020205; --side: rgba(10, 10, 15, 0.95); --card: rgba(20, 20, 35, 0.8); 
+            --accent: #00f2ff; --green: #39ff14; --red: #ff3131; --text: #e0e0ff; 
+        }
         * { box-sizing: border-box; font-family: 'Orbitron', sans-serif; }
         body { margin: 0; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        #bg-canvas { position: fixed; inset: 0; z-index: -1; opacity: 0.3; pointer-events: none; }
         .win { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 9000; background: var(--bg); }
         #app { display: none; flex: 1; flex-direction: row; height: calc(100vh - 80px); }
-        .stage { flex: 1; display: flex; flex-wrap: wrap; padding: 20px; gap: 20px; overflow-y: auto; background: radial-gradient(circle at center, #0a0a20 0%, #020205 100%); }
-        .u-box { width: 320px; aspect-ratio: 16/9; background: rgba(20,20,35,0.8); border-radius: 12px; position: relative; border: 2px solid var(--accent); overflow: hidden; box-shadow: 0 0 15px rgba(0,242,255,0.2); }
-        video { width: 100%; height: 100%; object-fit: cover; display: none; background: #000; }
+        .stage { flex: 1; display: flex; flex-wrap: wrap; align-content: flex-start; padding: 20px; gap: 20px; overflow-y: auto; }
+        .u-box { width: 320px; aspect-ratio: 16/9; background: var(--card); border-radius: 12px; position: relative; border: 2px solid var(--accent); overflow: hidden; box-shadow: 0 0 15px rgba(0,242,255,0.2); transition: 0.3s; }
+        .u-box.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: calc(100vh - 80px); z-index: 5000; border: none; border-radius: 0; }
+        video { width: 100%; height: 100%; object-fit: cover; background: #000; display: none; }
         video.active { display: block; }
-        .u-ava { width: 80px; height: 80px; border-radius: 50%; background: #111 center/cover; border: 3px solid var(--accent); position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 5; }
-        .u-ava.hidden { opacity: 0; }
-        .u-nick { position: absolute; bottom: 8px; left: 8px; font-size: 10px; background: rgba(0,0,0,0.8); padding: 3px 8px; border-radius: 4px; border: 1px solid var(--accent); }
-        .side { width: 300px; background: rgba(10,10,15,0.95); border-left: 2px solid var(--accent); display: flex; flex-direction: column; }
-        #msgs { flex: 1; overflow-y: auto; padding: 15px; font-size: 11px; }
-        .m { background: rgba(255,255,255,0.05); padding: 8px; margin-bottom: 8px; border-radius: 4px; border-left: 2px solid var(--accent); }
+        .u-ava { width: 80px; height: 80px; border-radius: 50%; background: #111 center/cover; border: 3px solid var(--accent); position: absolute; z-index: 5; top: 50%; left: 50%; transform: translate(-50%, -50%); transition: 0.3s; }
+        .u-ava.hidden { opacity: 0; visibility: hidden; }
+        .pulse-ring { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85px; height: 85px; border-radius: 50%; border: 4px solid var(--accent); opacity: 0; z-index: 4; pointer-events: none; transition: 0.1s; }
+        .u-nick { position: absolute; bottom: 8px; left: 8px; font-size: 10px; background: rgba(0,0,0,0.8); padding: 3px 8px; border-radius: 4px; z-index: 10; border: 1px solid var(--accent); }
+        .vol-ctrl { position: absolute; top: 8px; left: 8px; z-index: 20; display: flex; align-items: center; background: rgba(0,0,0,0.6); padding: 2px 5px; border-radius: 10px; }
+        .vol-slider { width: 60px; height: 4px; cursor: pointer; accent-color: var(--accent); }
+        .fs-btn { position: absolute; top: 8px; right: 8px; z-index: 20; background: var(--accent); color: #000; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: bold; }
+        .side { width: 340px; background: var(--side); border-left: 2px solid var(--accent); display: flex; flex-direction: column; }
+        #user-list { padding: 15px; border-bottom: 1px solid #222; background: rgba(0,0,0,0.3); }
+        .u-item { font-size: 12px; margin-bottom: 5px; color: var(--green); display: flex; align-items: center; gap: 8px; }
+        #msgs { flex: 1; overflow-y: auto; padding: 15px; scrollbar-width: none; }
+        .m { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid var(--accent); font-size: 11px; }
+        .m img { max-width: 100%; border-radius: 8px; margin-top: 5px; border: 1px solid var(--accent); }
+        .chat-tools { padding: 12px; background: #000; border-top: 1px solid #222; }
         .dock { height: 80px; background: #000; border-top: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; gap: 20px; }
-        .icn { width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--accent); background: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .icn { width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--accent); background: none; color: #fff; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; }
         .icn.on { background: var(--green); color: #000; box-shadow: 0 0 15px var(--green); }
-        .card { background: #0a0a15; padding: 30px; border-radius: 20px; border: 2px solid var(--accent); text-align: center; width: 320px; }
-        input { width: 100%; padding: 10px; background: #000; color: #fff; border: 1px solid #333; margin: 10px 0; border-radius: 5px; }
+        .card { background: #0a0a15; padding: 35px; border-radius: 20px; border: 2px solid var(--accent); text-align: center; width: 350px; }
+        @keyframes fly { from{opacity:1; transform:translateY(0);} to{opacity:0; transform:translateY(-200px);} }
+        
+        /* Новые стили для подключения */
+        #my-peer-id { 
+            font-size: 10px; 
+            background: #111; 
+            padding: 5px 10px; 
+            border: 1px solid var(--accent); 
+            border-radius: 4px; 
+            margin-top: 10px;
+            word-break: break-all;
+            cursor: pointer;
+        }
+        #my-peer-id:hover { background: #222; }
+        .copy-btn {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
+    <canvas id="bg-canvas"></canvas>
     <div id="w-auth" class="win">
         <div class="card">
-            <h2 style="color:var(--accent)">TITAN OMNI</h2>
-            <input type="text" id="i-nick" placeholder="ТВОЙ ПОЗЫВНОЙ">
-            <button onclick="saveProfile()" style="width:100%; padding:15px; background:var(--accent); border:none; font-weight:bold; cursor:pointer">СОХРАНИТЬ</button>
+            <h1 style="color:var(--accent)">TITAN FINAL</h1>
+            <div id="p-ava" style="width:90px; height:90px; border-radius:50%; border:2px solid var(--accent); margin:15px auto; background:#111 center/cover"></div>
+            <input type="file" id="f-ava" hidden onchange="toB64(this, 'p-ava')">
+            <button onclick="document.getElementById('f-ava').click()" style="background:none; border:1px solid; color:var(--accent); cursor:pointer; padding:5px; margin-bottom:15px; font-size:10px">ОБЛИК</button>
+            <input type="text" id="i-nick" placeholder="НИК" style="width:100%; padding:10px; background:#000; color:#fff; border:1px solid #333;">
+            <button onclick="register()" style="width:100%; padding:15px; background:var(--accent); border:none; border-radius:10px; font-weight:bold; margin-top:15px; cursor:pointer">ВХОД</button>
         </div>
     </div>
-
     <div id="w-lobby" class="win" style="display:none">
         <div class="card">
-            <h3 id="l-nick"></h3>
-            <input type="text" id="i-room" placeholder="ID КОМНАТЫ (ЛЮБОЙ)">
-            <button onclick="connect()" style="width:100%; padding:15px; background:var(--green); border:none; font-weight:bold; cursor:pointer">ВОЙТИ В СЕТЬ</button>
-        </div>
-    </div>
-
-    <div id="app">
-        <div class="stage" id="stage"></div>
-        <div class="side">
-            <div style="padding:10px; font-size:10px; color:var(--accent)">СЕТЕВОЙ СПИСОК:</div>
-            <div id="u-items" style="padding:0 10px; color:var(--green); font-size:12px"></div>
-            <div id="msgs"></div>
-            <div style="padding:10px; display:flex; gap:5px">
-                <input type="text" id="c-in" placeholder="Связь..." onkeypress="if(event.key==='Enter') sendMsg()">
-                <button onclick="sendMsg()" style="background:var(--accent); border:none; padding:10px;">></button>
+            <h2 id="l-nick" style="color:var(--green)"></h2>
+            
+            <div style="text-align: left; margin: 15px 0;">
+                <div style="font-size: 11px; color: var(--accent); margin-bottom: 5px;">ШАГ 1: Введите общий ID комнаты</div>
+                <input type="text" id="i-room" placeholder="titan-room-123" style="width:100%; padding:10px; background:#000; color:#fff; border:1px solid #333;">
+                <div style="font-size: 9px; color: #888; margin-top: 5px;">Оба введите одинаковый ID</div>
+            </div>
+            
+            <button onclick="start()" style="width:100%; padding:15px; background:var(--green); border:none; border-radius:10px; font-weight:bold; cursor:pointer">ВОЙТИ В КОМНАТУ</button>
+            
+            <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;">
+                <div style="font-size: 11px; color: var(--accent); margin-bottom: 5px;">ШАГ 2: Ваш ID для подключения</div>
+                <div id="my-peer-id">...</div>
+                <button class="copy-btn" onclick="copyMyId()">СКОПИРОВАТЬ</button>
+                
+                <div style="font-size: 11px; color: var(--accent); margin: 15px 0 5px;">ШАГ 3: Подключиться к другу</div>
+                <input type="text" id="friend-id" placeholder="Вставьте ID друга" style="width:100%; padding:10px; background:#000; color:#fff; border:1px solid #333;">
+                <button onclick="connectToFriend()" style="width:100%; padding:10px; background:var(--accent); border:none; border-radius:10px; font-weight:bold; margin-top:10px; cursor:pointer">ПОДКЛЮЧИТЬСЯ</button>
+            </div>
+            
+            <div style="font-size: 8px; color: #666; margin-top: 15px;">
+                Инструкция: 1) Ввести общий ID комнаты → 2) Войти → 3) Отправить свой ID другу → 4) Вставить ID друга → 5) Подключиться
             </div>
         </div>
     </div>
-
+    <div id="app">
+        <div class="stage" id="stage"></div>
+        <div class="side">
+            <div id="user-list"><div style="font-size: 10px; color: var(--accent); margin-bottom: 10px;">В КОРПУСЕ:</div><div id="u-items"></div></div>
+            <div id="msgs"></div>
+            <div class="chat-tools">
+                <div style="display:flex; gap:10px; justify-content:center; margin-bottom:10px;">
+                    <button class="icn" style="width:35px; height:35px; font-size:15px" onclick="sendEmoji('🔥')">🔥</button>
+                    <button class="icn" style="width:35px; height:35px; font-size:15px" onclick="sendSFX()">📢</button>
+                    <button class="icn" style="width:35px; height:35px; font-size:15px" onclick="document.getElementById('f-send').click()">🖼️</button>
+                    <input type="file" id="f-send" hidden accept="image/*" onchange="sendFile(this)">
+                </div>
+                <div style="display:flex; gap:5px"><input type="text" id="c-in" placeholder="Связь..." onkeypress="if(event.key==='Enter') sendMsg()" style="flex:1; padding:10px; background:#111; border:1px solid #333; color:#fff;"><button onclick="sendMsg()" style="background:var(--accent); border:none; padding:10px; border-radius:5px; cursor:pointer; font-weight:bold">></button></div>
+            </div>
+        </div>
+    </div>
     <div class="dock" id="main-dock" style="display:none">
         <button id="b-mic" class="icn" onclick="media('audio')">🎙️</button>
         <button id="b-cam" class="icn" onclick="media('video')">📷</button>
+        <button id="b-scr" class="icn" onclick="shareScreen()">🖥️</button>
         <button class="icn" style="background:var(--red)" onclick="location.reload()">🚪</button>
     </div>
 
     <script>
-        let myStream = new MediaStream(), peer, myId, conns = {}, roomID;
-        let profile = JSON.parse(localStorage.getItem('titan_p')) || {nick:'', id: Math.random().toString(36).substr(2,6)};
+        let myStream = new MediaStream(), peer, myId, conns = {}, currentRoom = '', screenStream = null;
+        let profile = JSON.parse(localStorage.getItem('titan_p')) || {nick:'', ava:'', id: Math.random().toString(36).substr(2,6)};
+        let activeUsers = new Map();
+        const sfx = { 
+            horn: new Audio('https://www.myinstants.com/media/sounds/mlg-airhorn.mp3'), 
+            msg: new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3') 
+        };
 
         if(profile.nick) showLobby();
-
-        function saveProfile() {
-            const n = document.getElementById('i-nick').value;
-            if(!n) return; profile.nick = n;
-            localStorage.setItem('titan_p', JSON.stringify(profile));
-            location.reload();
+        
+        function toB64(i, t) { 
+            const r = new FileReader(); 
+            r.onload=e=>{ 
+                window.tmpA=e.target.result; 
+                document.getElementById(t).style.backgroundImage=`url(${e.target.result})`; 
+            }; 
+            r.readAsDataURL(i.files[0]); 
+        }
+        
+        function register() { 
+            const n = document.getElementById('i-nick').value; 
+            if(!n) return alert('Введите ник!'); 
+            profile.nick = n; 
+            if(window.tmpA) profile.ava = window.tmpA; 
+            localStorage.setItem('titan_p', JSON.stringify(profile)); 
+            location.reload(); 
+        }
+        
+        function showLobby() { 
+            document.getElementById('w-auth').style.display='none'; 
+            document.getElementById('w-lobby').style.display='flex'; 
+            document.getElementById('l-nick').innerText = "БОЕЦ: " + profile.nick; 
         }
 
-        function showLobby() {
-            document.getElementById('w-auth').style.display='none';
-            document.getElementById('w-lobby').style.display='flex';
-            document.getElementById('l-nick').innerText = "ПРИВЕТ, " + profile.nick;
-        }
-
-        function connect() {
-            roomID = document.getElementById('i-room').value.trim();
-            if(!roomID) return;
-            document.querySelectorAll('.win').forEach(w=>w.style.display='none');
-            document.getElementById('app').style.display='flex';
-            document.getElementById('main-dock').style.display='flex';
-
-            // Настройка серверов для пробития NAT
-            peer = new Peer("titan-" + roomID + "-" + profile.id, {
+        function start() {
+            currentRoom = document.getElementById('i-room').value.trim();
+            if(!currentRoom) return alert('Введите ID комнаты!');
+            
+            // Генерируем уникальный ID для пользователя
+            myId = currentRoom + "-" + profile.id + "-" + Date.now().toString(36);
+            
+            // Показываем наш ID в лобби
+            document.getElementById('my-peer-id').textContent = myId;
+            
+            console.log("Мой ID для подключения:", myId);
+            
+            // Используем публичный PeerJS сервер с надежными настройками
+            peer = new Peer(myId, {
+                host: '0.peerjs.com',
+                port: 443,
+                path: '/',
+                secure: true,
+                debug: 2,
                 config: {
                     'iceServers': [
                         { urls: 'stun:stun.l.google.com:19302' },
                         { urls: 'stun:stun1.l.google.com:19302' },
-                        { urls: 'stun:stun.services.mozilla.com' }
+                        { urls: 'stun:stun2.l.google.com:19302' },
+                        { urls: 'stun:stun3.l.google.com:19302' },
+                        { urls: 'stun:stun4.l.google.com:19302' }
                     ]
                 }
             });
-
+            
             peer.on('open', (id) => {
-                myId = id;
-                addBox(profile.nick, myId, true);
-                updateList(myId, profile.nick);
+                console.log("Успешно подключен к серверу с ID:", id);
+                document.getElementById('my-peer-id').textContent = id;
                 
-                // Периодически ищем других (грубая, но рабочая логика для онлайн-присутствия)
-                setInterval(() => {
-                    // В реальном приложении тут нужен сервер-списочник, 
-                    // но мы попробуем соединиться с "базовым" ID комнаты
-                    const c = peer.connect("titan-" + roomID + "-host", {metadata: profile});
-                    if(c) bind(c);
-                }, 5000);
-
-                // Пытаемся сами стать хостом, если место свободно
-                const hostPeer = new Peer("titan-" + roomID + "-host");
-                hostPeer.on('connection', bind);
-                hostPeer.on('call', call => {
-                    call.answer(myStream);
-                    handleStream(call);
+                // Слушаем входящие соединения
+                peer.on('connection', (conn) => {
+                    console.log("Входящее соединение от:", conn.peer);
+                    bind(conn);
                 });
+                
+                peer.on('call', answerCall);
+                
+                // Добавляем себя в интерфейс
+                addBox(profile.nick, profile.ava, myId, true);
+                updateUserList(myId, profile.nick, true);
             });
+            
+            peer.on('error', (err) => {
+                console.error('PeerJS ошибка:', err);
+                if(err.type === 'unavailable-id') {
+                    // ID занят, генерируем новый
+                    myId = currentRoom + "-" + profile.id + "-" + Date.now().toString(36);
+                    document.getElementById('my-peer-id').textContent = myId;
+                    alert('ID занят, используйте новый: ' + myId);
+                } else if(err.type === 'server-error') {
+                    alert('Ошибка сервера. Попробуйте другой ID комнаты.');
+                }
+            });
+        }
+        
+        function connectToFriend() {
+            const friendId = document.getElementById('friend-id').value.trim();
+            if(!friendId) return alert('Введите ID друга!');
+            if(friendId === myId) return alert('Нельзя подключиться к самому себе!');
+            
+            console.log("Подключаюсь к другу:", friendId);
+            
+            // Создаем соединение для данных
+            const conn = peer.connect(friendId, {
+                metadata: profile,
+                reliable: true
+            });
+            
+            if(conn) {
+                bind(conn);
+                
+                // Ждем немного и инициируем звонок
+                setTimeout(() => {
+                    if(myStream.getTracks().length > 0) {
+                        const call = peer.call(friendId, myStream, {metadata: profile});
+                        call.on('stream', s => pipe(call.peer, s));
+                        console.log("Звонок отправлен другу");
+                    } else {
+                        console.log("Медиа-стрим не готов, ждем...");
+                    }
+                }, 1000);
+                
+                alert('Подключение установлено!');
+            }
+        }
+        
+        function copyMyId() {
+            const idText = document.getElementById('my-peer-id').textContent;
+            navigator.clipboard.writeText(idText).then(() => {
+                alert('ID скопирован! Отправьте его другу.');
+            });
+        }
 
-            peer.on('connection', bind);
-            peer.on('call', call => {
-                call.answer(myStream);
-                handleStream(call);
-            });
+        function answerCall(call) {
+            console.log("Входящий звонок от:", call.peer);
+            call.answer(myStream);
+            
+            // Добавляем пользователя в интерфейс
+            const nick = call.metadata?.nick || "Друг";
+            const ava = call.metadata?.ava || "";
+            addBox(nick, ava, call.peer);
+            updateUserList(call.peer, nick, true);
+            
+            call.on('stream', s => pipe(call.peer, s));
         }
 
         function bind(c) {
-            if(conns[c.peer]) return;
+            console.log("Устанавливаю соединение с:", c.peer);
             conns[c.peer] = c;
+            
             c.on('open', () => {
-                c.send({type:'init', n:profile.nick});
-                peer.call(c.peer, myStream, {metadata: profile});
+                console.log("Соединение установлено с:", c.peer);
+                // Обмениваемся профилями
+                c.send({type: 'init', n: profile.nick, a: profile.ava});
+                
+                // Инициируем медиа-звонок, если у нас есть стрим
+                if(myStream.getTracks().length > 0) {
+                    const call = peer.call(c.peer, myStream, {metadata: profile});
+                    call.on('stream', s => pipe(call.peer, s));
+                }
             });
+            
             c.on('data', d => {
-                if(d.type==='init') { addBox(d.n, c.peer); updateList(c.peer, d.n); }
-                if(d.type==='msg') pushChat(d.n, d.m);
+                console.log("Получены данные от", c.peer, d);
+                
+                if(d.type === 'init') { 
+                    addBox(d.n, d.a, c.peer); 
+                    updateUserList(c.peer, d.n, true); 
+                }
+                if(d.type === 'msg') { 
+                    pushChat(d.n, d.m); 
+                    sfx.msg.play(); 
+                }
+                if(d.type === 'file') pushChat(d.n, `<img src="${d.v}">`);
+                if(d.type === 'emo') showFly(d.v);
+                if(d.type === 'sfx') sfx.horn.play();
+                if(d.type === 'scr_on') addBox(d.n, '', c.peer, false, true);
+                if(d.type === 'scr_off') document.getElementById('scr-'+c.peer)?.remove();
             });
-            c.on('close', () => { document.getElementById('u-'+c.peer)?.remove(); });
+            
+            c.on('close', () => { 
+                console.log("Соединение закрыто:", c.peer);
+                document.getElementById('u-'+c.peer)?.remove(); 
+                document.getElementById('scr-'+c.peer)?.remove();
+                updateUserList(c.peer, '', false); 
+            });
+            
+            c.on('error', (err) => {
+                console.error("Ошибка соединения:", err);
+            });
         }
 
-        function handleStream(call) {
-            addBox(call.metadata?.nick || "Друг", call.peer);
-            call.on('stream', s => {
-                const v = document.getElementById('vid-u-'+call.peer);
-                if(v) { v.srcObject = s; v.onloadedmetadata = () => v.classList.add('active'); }
+        function updateUserList(id, nick, add) {
+            if(add) activeUsers.set(id, nick); 
+            else activeUsers.delete(id);
+            
+            const container = document.getElementById('u-items'); 
+            container.innerHTML = '';
+            activeUsers.forEach((name, id) => { 
+                container.innerHTML += `<div class="u-item">● ${name} <span style="font-size:8px;color:#888">(${id.substring(0,8)}...)</span></div>`; 
             });
         }
 
-        function addBox(n, id, isMe) {
-            if(document.getElementById('u-'+id)) return;
+        function addBox(nick, ava, id, isMe, isScr = false) {
+            const bId = isScr ? 'scr-'+id : 'u-'+id;
+            if(document.getElementById(bId)) return;
+            
             const b = document.createElement('div');
-            b.className = 'u-box'; b.id = 'u-'+id;
+            b.className = isScr ? 'u-box screen' : 'u-box';
+            b.id = bId;
             b.innerHTML = `
-                <div class="u-ava" id="ava-${id}"></div>
-                <div class="u-nick">${n}</div>
-                <video id="vid-u-${id}" autoplay playsinline ${isMe?'muted':''}></video>
+                ${!isScr ? `<div class="u-ava" id="ava-${id}" style="background-image:url(${ava})"></div>` : ''}
+                <div class="pulse-ring" id="p-${id}"></div>
+                <div class="u-nick">${isScr ? '🖥️ '+nick : nick}</div>
+                ${!isMe ? `<div class="vol-ctrl">🔈<input type="range" class="vol-slider" min="0" max="1" step="0.1" value="1" oninput="setVol('${bId}', this.value)"></div>` : ''}
+                ${isScr ? `<button class="fs-btn" onclick="toggleFS('${bId}')">FS</button>` : ''}
+                <video id="vid-${bId}" autoplay playsinline ${isMe?'muted':''}></video>
             `;
             document.getElementById('stage').appendChild(b);
         }
 
-        function updateList(id, n) {
-            const l = document.getElementById('u-items');
-            if(!l.innerHTML.includes(n)) l.innerHTML += `<div>● ${n}</div>`;
+        function setVol(bId, v) { 
+            const vid = document.getElementById('vid-'+bId); 
+            if(vid) vid.volume = v; 
+        }
+        
+        function toggleFS(id) { 
+            const el = document.getElementById(id); 
+            el.classList.toggle('fullscreen'); 
+        }
+
+        function pipe(id, s) {
+            const isScr = s.getVideoTracks()[0]?.label.toLowerCase().includes('screen');
+            const bId = isScr ? 'scr-'+id : 'u-'+id;
+            const v = document.getElementById('vid-'+bId); 
+            
+            if(!v) {
+                // Если видео-элемента нет, создаем коробку
+                const nick = activeUsers.get(id) || "Друг";
+                addBox(nick, '', id, false, isScr);
+            }
+            
+            const vUpdated = document.getElementById('vid-'+bId);
+            if(vUpdated) {
+                vUpdated.srcObject = s;
+                vUpdated.onloadedmetadata = () => { 
+                    vUpdated.classList.add('active'); 
+                    if(!isScr) document.getElementById('ava-'+id)?.classList.add('hidden'); 
+                };
+            }
+            
+            // Анализ аудио для анимации
+            const actx = new (window.AudioContext || window.webkitAudioContext)();
+            const an = actx.createAnalyser(); 
+            actx.createMediaStreamSource(s).connect(an);
+            const data = new Uint8Array(an.frequencyBinCount);
+            
+            const loop = () => {
+                an.getByteFrequencyData(data); 
+                const vol = data.reduce((a,b)=>a+b)/data.length;
+                const ring = document.getElementById('p-'+id);
+                if(ring) {
+                    ring.style.opacity = vol > 10 ? "1" : "0";
+                    ring.style.transform = isScr ? 
+                        `translate(-50%,-50%) scale(${1+vol/200})` : 
+                        `translate(-50%,-50%) scale(${1+vol/30})`;
+                }
+                requestAnimationFrame(loop);
+            }; 
+            loop();
         }
 
         async function media(t) {
-            const s = await navigator.mediaDevices.getUserMedia(t==='video'?{video:true}:{audio:true});
-            const trk = s.getTracks()[0];
-            myStream.addTrack(trk);
             const btn = document.getElementById(t==='video'?'b-cam':'b-mic');
-            btn.classList.add('on');
-            // Обновляем поток у всех
-            Object.values(conns).forEach(c => peer.call(c.peer, myStream, {metadata: profile}));
+            
+            if(myStream.getTracks().filter(tr => tr.kind === t && tr.enabled).length === 0) {
+                try {
+                    const s = await navigator.mediaDevices.getUserMedia(
+                        t==='video' ? {video: true} : {audio: true}
+                    );
+                    
+                    // Добавляем треки к нашему стриму
+                    s.getTracks().forEach(track => {
+                        myStream.addTrack(track);
+                        // Отправляем обновленный стрим всем подключенным
+                        Object.values(conns).forEach(c => {
+                            if(peer) {
+                                const call = peer.call(c.peer, myStream, {metadata: profile});
+                                call.on('stream', stream => pipe(c.peer, stream));
+                            }
+                        });
+                    });
+                    
+                    btn.classList.add('on');
+                } catch(err) {
+                    console.error("Ошибка доступа к медиа:", err);
+                    alert(`Не удалось получить доступ к ${t==='video'?'камере':'микрофону'}`);
+                    return;
+                }
+            } else {
+                // Переключаем существующие треки
+                myStream.getTracks()
+                    .filter(tr => tr.kind === t)
+                    .forEach(tr => {
+                        tr.enabled = !tr.enabled;
+                        if(tr.enabled) btn.classList.add('on');
+                        else btn.classList.remove('on');
+                    });
+            }
+            
+            // Обновляем свое видео
             const myV = document.getElementById('vid-u-'+myId);
-            if(t==='video') { myV.srcObject = myStream; myV.classList.add('active'); document.getElementById('ava-'+myId).classList.add('hidden'); }
+            const myAva = document.getElementById('ava-'+myId);
+            
+            if(myV && myAva) {
+                myV.srcObject = myStream;
+                if(myStream.getVideoTracks().some(t => t.enabled)) {
+                    myV.classList.add('active');
+                    myAva.classList.add('hidden');
+                } else {
+                    myV.classList.remove('active');
+                    myAva.classList.remove('hidden');
+                }
+            }
+        }
+
+        async function shareScreen() {
+            const btn = document.getElementById('b-scr');
+            
+            if(!screenStream) {
+                try {
+                    screenStream = await navigator.mediaDevices.getDisplayMedia({
+                        video: { cursor: "always" },
+                        audio: false
+                    });
+                    
+                    // Создаем коробку для экрана
+                    addBox(profile.nick, '', myId, true, true);
+                    const sv = document.getElementById('vid-scr-'+myId); 
+                    sv.srcObject = screenStream; 
+                    sv.classList.add('active');
+                    btn.classList.add('on');
+                    
+                    // Отправляем экран всем подключенным
+                    Object.values(conns).forEach(c => { 
+                        c.send({type:'scr_on', n:profile.nick}); 
+                        if(peer) {
+                            peer.call(c.peer, screenStream, {metadata: {...profile, isScreen: true}});
+                        }
+                    });
+                    
+                    // Когда экран прекращает демонстрацию
+                    screenStream.getVideoTracks()[0].onended = () => {
+                        screenStream.getTracks().forEach(t => t.stop());
+                        screenStream = null;
+                        btn.classList.remove('on');
+                        document.getElementById('scr-'+myId)?.remove();
+                        Object.values(conns).forEach(c => c.send({type:'scr_off'}));
+                    };
+                } catch(err) {
+                    console.error("Ошибка демонстрации экрана:", err);
+                    alert('Не удалось начать демонстрацию экрана');
+                }
+            } else {
+                screenStream.getTracks().forEach(t => t.stop());
+                screenStream = null;
+                btn.classList.remove('on');
+                document.getElementById('scr-'+myId)?.remove();
+                Object.values(conns).forEach(c => c.send({type:'scr_off'}));
+            }
         }
 
         function sendMsg() {
-            const i = document.getElementById('c-in');
-            Object.values(conns).forEach(c => c.send({type:'msg', n:profile.nick, m:i.value}));
-            pushChat("Я", i.value); i.value = '';
+            const i = document.getElementById('c-in'); 
+            if(!i.value.trim()) return;
+            
+            Object.values(conns).forEach(c => c.send({
+                type:'msg', 
+                n:profile.nick, 
+                m:i.value
+            }));
+            
+            pushChat("Я", i.value); 
+            i.value='';
         }
 
-        function pushChat(n, m) {
-            const b = document.getElementById('msgs');
-            b.innerHTML += `<div class="m"><b>${n}:</b> ${m}</div>`;
-            b.scrollTop = b.scrollHeight;
+        function sendFile(input) {
+            const file = input.files[0]; 
+            if(!file) return;
+            
+            const r = new FileReader(); 
+            r.onload = e => {
+                Object.values(conns).forEach(c => c.send({
+                    type:'file', 
+                    n:profile.nick, 
+                    v:e.target.result
+                }));
+                pushChat("Я", `<img src="${e.target.result}">`);
+            }; 
+            r.readAsDataURL(file);
         }
+
+        function pushChat(n, m) { 
+            const b = document.getElementById('msgs'); 
+            b.innerHTML += `<div class="m"><b>${n}</b>: ${m}</div>`; 
+            b.scrollTop = b.scrollHeight; 
+        }
+        
+        function sendEmoji(v) { 
+            Object.values(conns).forEach(c => c.send({type:'emo', v})); 
+            showFly(v); 
+        }
+        
+        function sendSFX() { 
+            Object.values(conns).forEach(c => c.send({type:'sfx'})); 
+            sfx.horn.play(); 
+        }
+        
+        function showFly(v) {
+            const e = document.createElement('div'); 
+            e.innerText = v; 
+            e.style.position = 'fixed'; 
+            e.style.bottom = '100px';
+            e.style.left = Math.random()*80+'%'; 
+            e.style.fontSize = '40px'; 
+            e.style.animation = 'fly 2s forwards'; 
+            e.style.zIndex = '9999';
+            document.body.appendChild(e);
+            setTimeout(()=>e.remove(), 2000);
+        }
+
+        // Фоновые звезды
+        const canvas = document.getElementById('bg-canvas'); 
+        const ctx = canvas.getContext('2d');
+        let pts = []; 
+        
+        window.onresize = () => { 
+            canvas.width = window.innerWidth; 
+            canvas.height = window.innerHeight; 
+        }; 
+        window.onresize();
+        
+        for(let i=0; i<60; i++) {
+            pts.push({
+                x: Math.random()*canvas.width, 
+                y: Math.random()*canvas.height, 
+                s: Math.random()*1.5
+            });
+        }
+        
+        function anim() { 
+            ctx.clearRect(0,0,canvas.width, canvas.height); 
+            ctx.fillStyle = "#00f2ff"; 
+            pts.forEach(p => {
+                p.y -= p.s;
+                if(p.y < 0) {
+                    p.y = canvas.height;
+                    p.x = Math.random()*canvas.width;
+                }
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.s, 0, Math.PI*2);
+                ctx.fill();
+            }); 
+            requestAnimationFrame(anim); 
+        }
+        anim();
     </script>
 </body>
 </html>
