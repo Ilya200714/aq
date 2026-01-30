@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mega P2P Chat</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div id="auth-screen" class="centered">
+            <div class="glass-card">
+                <h2>Твой Профиль</h2>
+                <input type="text" id="user-nickname" placeholder="Введите никнейм...">
+                <button id="save-profile-btn">Войти в лобби</button>
+            </div>
+        </div>
+
+        <div id="setup-screen" class="centered" style="display: none;">
+            <div class="glass-card">
+                <h2 id="welcome-msg"></h2>
+                <input type="text" id="room-id" placeholder="Название комнаты...">
+                <button id="join-btn">Создать / Присоединиться</button>
+            </div>
+        </div>
+
+        <div id="chat-screen" style="display: none;">
+            <div class="main-layout">
+                <div class="video-section">
+                    <div id="user-grid"></div>
+                    <div id="canvas-area">
+                        <canvas id="shared-canvas"></canvas>
+                        <div class="canvas-controls">
+                            <input type="color" id="line-color" value="#3d5afe">
+                            <button onclick="clearCanvas()">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="side-panel">
+                    <div class="room-header">
+                        <span id="room-name-display"></span>
+                        <button id="copy-link-btn">🔗 Ссылка</button>
+                    </div>
+                    <div id="soundboard">
+                        <button onclick="sendSound('😂')">😂</button>
+                        <button onclick="sendSound('🥁')">🥁</button>
+                        <button onclick="sendSound('🔥')">🔥</button>
+                    </div>
+                    <div id="chat-messages"></div>
+                    <input type="text" id="chat-input" placeholder="Сообщение...">
+                </div>
+            </div>
+
+            <div class="bottom-controls">
+                <button onclick="toggleMic()" id="mic-btn">🎤</button>
+                <button onclick="toggleCam()" id="cam-btn">📷</button>
+                <button id="screen-btn">🖥️ Экран</button>
+                <button id="settings-btn">⚙️</button>
+                <button onclick="location.reload()" class="exit">🛑</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <h3>Настройки оборудования</h3>
+            <label>Микрофон:</label>
+            <select id="mic-select"></select>
+            <div class="mic-test"><div id="mic-test-bar"></div></div>
+            <label>Динамики:</label>
+            <select id="speaker-select"></select>
+            <hr>
+            <label>Качество стрима:</label>
+            <select id="fps-select">
+                <option value="30">30 FPS</option>
+                <option value="60">60 FPS (Ultra)</option>
+            </select>
+            <button onclick="closeSettings()">Готово</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
