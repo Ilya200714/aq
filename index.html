@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>TITAN ETERNAL V32 - COMMANDER EDITION</title>
+    <title>TITAN ETERNAL V32 - GLOBAL CONNECT</title>
     <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -12,65 +12,41 @@
         }
         * { box-sizing: border-box; font-family: 'Orbitron', sans-serif; }
         body { margin: 0; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-
         #bg-canvas { position: fixed; inset: 0; z-index: -1; opacity: 0.3; pointer-events: none; }
-
         .win { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 9000; background: var(--bg); }
         #app { display: none; flex: 1; flex-direction: row; height: calc(100vh - 80px); }
-
         .stage { flex: 1; display: flex; flex-wrap: wrap; align-content: flex-start; padding: 20px; gap: 20px; overflow-y: auto; }
-        
-        .u-box { 
-            width: 320px; aspect-ratio: 16/9; background: var(--card); border-radius: 12px; 
-            position: relative; border: 2px solid var(--accent); overflow: hidden;
-            box-shadow: 0 0 15px rgba(0,242,255,0.2); transition: 0.3s;
-        }
-        
-        .u-box.fullscreen {
-            position: fixed; top: 0; left: 0; width: 100vw; height: calc(100vh - 80px); 
-            z-index: 5000; border: none; border-radius: 0;
-        }
-
+        .u-box { width: 320px; aspect-ratio: 16/9; background: var(--card); border-radius: 12px; position: relative; border: 2px solid var(--accent); overflow: hidden; box-shadow: 0 0 15px rgba(0,242,255,0.2); transition: 0.3s; }
+        .u-box.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: calc(100vh - 80px); z-index: 5000; border: none; border-radius: 0; }
         video { width: 100%; height: 100%; object-fit: cover; background: #000; display: none; }
         video.active { display: block; }
-
         .u-ava { width: 80px; height: 80px; border-radius: 50%; background: #111 center/cover; border: 3px solid var(--accent); position: absolute; z-index: 5; top: 50%; left: 50%; transform: translate(-50%, -50%); transition: 0.3s; }
         .u-ava.hidden { opacity: 0; visibility: hidden; }
-
         .pulse-ring { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85px; height: 85px; border-radius: 50%; border: 4px solid var(--accent); opacity: 0; z-index: 4; pointer-events: none; transition: 0.1s; }
-
         .u-nick { position: absolute; bottom: 8px; left: 8px; font-size: 10px; background: rgba(0,0,0,0.8); padding: 3px 8px; border-radius: 4px; z-index: 10; border: 1px solid var(--accent); }
-        
         .vol-ctrl { position: absolute; top: 8px; left: 8px; z-index: 20; display: flex; align-items: center; background: rgba(0,0,0,0.6); padding: 2px 5px; border-radius: 10px; }
         .vol-slider { width: 60px; height: 4px; cursor: pointer; accent-color: var(--accent); }
-
         .fs-btn { position: absolute; top: 8px; right: 8px; z-index: 20; background: var(--accent); color: #000; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: bold; }
-
         .side { width: 340px; background: var(--side); border-left: 2px solid var(--accent); display: flex; flex-direction: column; }
         #user-list { padding: 15px; border-bottom: 1px solid #222; background: rgba(0,0,0,0.3); }
         .u-item { font-size: 12px; margin-bottom: 5px; color: var(--green); display: flex; align-items: center; gap: 8px; }
         .u-item::before { content: "●"; font-size: 8px; animation: blink 1s infinite; }
-
         #msgs { flex: 1; overflow-y: auto; padding: 15px; scrollbar-width: none; }
         .m { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid var(--accent); font-size: 11px; word-break: break-all; }
         .m img { max-width: 100%; border-radius: 8px; margin-top: 5px; border: 1px solid var(--accent); }
-
         .chat-tools { padding: 12px; background: #000; border-top: 1px solid #222; }
         .dock { height: 80px; background: #000; border-top: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; gap: 20px; }
         .icn { width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--accent); background: none; color: #fff; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; }
         .icn.on { background: var(--green); color: #000; box-shadow: 0 0 15px var(--green); }
-
         .card { background: #0a0a15; padding: 35px; border-radius: 20px; border: 2px solid var(--accent); text-align: center; width: 350px; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
     </style>
 </head>
 <body>
-
     <canvas id="bg-canvas"></canvas>
-
     <div id="w-auth" class="win">
         <div class="card">
-            <h1 id="auth-header" style="color:var(--accent)">TITAN ETERNAL</h1>
+            <h1 id="auth-header" style="color:var(--accent)">TITAN GLOBAL</h1>
             <div id="p-ava" style="width:90px; height:90px; border-radius:50%; border:2px solid var(--accent); margin:15px auto; background:#111 center/cover"></div>
             <input type="file" id="f-ava" hidden onchange="toB64(this, 'p-ava')">
             <button onclick="document.getElementById('f-ava').click()" style="background:none; border:1px solid; color:var(--accent); cursor:pointer; padding:5px; margin-bottom:15px; font-size:10px">ВЫБРАТЬ ОБЛИК</button>
@@ -78,7 +54,6 @@
             <button onclick="register()" style="width:100%; padding:15px; background:var(--accent); border:none; border-radius:10px; font-weight:bold; margin-top:15px; cursor:pointer">СОХРАНИТЬ</button>
         </div>
     </div>
-
     <div id="w-lobby" class="win" style="display:none">
         <div class="card">
             <h2 id="l-nick" style="color:var(--green)"></h2>
@@ -87,14 +62,10 @@
             <button onclick="start(false)" style="width:100%; padding:15px; background:var(--accent); border:none; border-radius:10px; font-weight:bold; cursor:pointer">ПОДКЛЮЧИТЬСЯ</button>
         </div>
     </div>
-
     <div id="app">
         <div class="stage" id="stage"></div>
         <div class="side">
-            <div id="user-list">
-                <div style="font-size: 10px; color: var(--accent); margin-bottom: 10px; letter-spacing: 2px;">В КОРПУСЕ:</div>
-                <div id="u-items"></div>
-            </div>
+            <div id="user-list"><div style="font-size: 10px; color: var(--accent); margin-bottom: 10px; letter-spacing: 2px;">В КОРПУСЕ:</div><div id="u-items"></div></div>
             <div id="msgs"></div>
             <div class="chat-tools">
                 <div style="display:flex; gap:10px; justify-content:center; margin-bottom:10px;">
@@ -103,14 +74,10 @@
                     <button class="icn" style="width:35px; height:35px; font-size:15px" onclick="document.getElementById('f-send').click()">🖼️</button>
                     <input type="file" id="f-send" hidden accept="image/*" onchange="sendFile(this)">
                 </div>
-                <div style="display:flex; gap:5px">
-                    <input type="text" id="c-in" placeholder="Связь..." onkeypress="if(event.key==='Enter') sendMsg()" style="flex:1; padding:10px; background:#111; border:1px solid #333; color:#fff;">
-                    <button onclick="sendMsg()" style="background:var(--accent); border:none; padding:10px; border-radius:5px; cursor:pointer; font-weight:bold">></button>
-                </div>
+                <div style="display:flex; gap:5px"><input type="text" id="c-in" placeholder="Связь..." onkeypress="if(event.key==='Enter') sendMsg()" style="flex:1; padding:10px; background:#111; border:1px solid #333; color:#fff;"><button onclick="sendMsg()" style="background:var(--accent); border:none; padding:10px; border-radius:5px; cursor:pointer; font-weight:bold">></button></div>
             </div>
         </div>
     </div>
-
     <div class="dock" id="main-dock" style="display:none">
         <button id="b-mic" class="icn" onclick="media('audio')">🎙️</button>
         <button id="b-cam" class="icn" onclick="media('video')">📷</button>
@@ -125,6 +92,11 @@
         let activeUsers = new Map();
         const sfx = { horn: new Audio('https://www.myinstants.com/media/sounds/mlg-airhorn.mp3'), msg: new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3') };
 
+        // ГЛОБАЛЬНЫЙ КОНФИГ (STUN сервера)
+        const peerCfg = {
+            config: { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }, { 'urls': 'stun:stun1.l.google.com:19302' }] }
+        };
+
         if(profile.nick) {
             showLobby();
             const autoRoom = sessionStorage.getItem('titan_active_room');
@@ -137,27 +109,29 @@
         function showLobby() { document.getElementById('w-auth').style.display='none'; document.getElementById('w-lobby').style.display='flex'; document.getElementById('l-nick').innerText = "ПРИВЕТ, " + profile.nick; }
 
         function start(h) {
-            currentRoom = document.getElementById('i-room').value; if(!currentRoom) return;
+            currentRoom = document.getElementById('i-room').value.trim(); if(!currentRoom) return;
             sessionStorage.setItem('titan_active_room', currentRoom);
             sessionStorage.setItem('titan_is_host', h);
             document.querySelectorAll('.win').forEach(w=>w.style.display='none');
             document.getElementById('app').style.display='flex';
             document.getElementById('main-dock').style.display='flex';
             loadChat();
-            myId = h ? "tt-"+currentRoom : "tt-"+currentRoom+"-"+profile.id;
-            peer = new Peer(myId);
+            
+            myId = h ? "global-"+currentRoom : "global-"+currentRoom+"-"+profile.id;
+            peer = new Peer(myId, peerCfg);
             
             addBox(profile.nick, profile.ava, myId, true);
             updateUserList(myId, profile.nick, true);
 
-            peer.on('open', () => {
+            peer.on('open', (id) => {
                 if(!h) {
-                    const conn = peer.connect("tt-"+currentRoom, {metadata: profile});
+                    const conn = peer.connect("global-"+currentRoom, {metadata: profile});
                     bind(conn);
-                    const call = peer.call("tt-"+currentRoom, myStream, {metadata: profile});
+                    const call = peer.call("global-"+currentRoom, myStream, {metadata: profile});
                     call.on('stream', s => pipe(call.peer, s));
                 }
             });
+
             peer.on('connection', bind);
             peer.on('call', call => {
                 call.answer(myStream);
@@ -165,15 +139,14 @@
                 updateUserList(call.peer, call.metadata?.nick || "Agent", true);
                 call.on('stream', s => pipe(call.peer, s));
             });
+            
+            peer.on('error', err => { console.error("PeerJS Error:", err); if(err.type === 'peer-disconnected') location.reload(); });
         }
 
         function updateUserList(id, nick, add) {
             if(add) activeUsers.set(id, nick); else activeUsers.delete(id);
             const container = document.getElementById('u-items');
-            container.innerHTML = '';
-            activeUsers.forEach((name) => {
-                container.innerHTML += `<div class="u-item">${name}</div>`;
-            });
+            container.innerHTML = ''; activeUsers.forEach((name) => { container.innerHTML += `<div class="u-item">${name}</div>`; });
         }
 
         function addBox(nick, ava, id, isMe, isScr = false) {
@@ -206,17 +179,13 @@
                 if(d.type==='scr_on') addBox(d.n, '', c.peer, false, true);
                 if(d.type==='scr_off') document.getElementById('scr-'+c.peer)?.remove();
             });
-            c.on('close', () => {
-                document.getElementById('u-'+c.peer)?.remove();
-                updateUserList(c.peer, '', false);
-            });
+            c.on('close', () => { document.getElementById('u-'+c.peer)?.remove(); updateUserList(c.peer, '', false); });
         }
 
         function pipe(id, s) {
             const isScr = s.getVideoTracks()[0]?.label.toLowerCase().includes('screen');
             const vId = isScr ? 'vid-scr-'+id : 'vid-u-'+id;
-            const v = document.getElementById(vId);
-            if(!v) return;
+            const v = document.getElementById(vId); if(!v) return;
             v.srcObject = s;
             const checkVideo = () => {
                 const hasVid = s.getVideoTracks().some(t => t.enabled);
