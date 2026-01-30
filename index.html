@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>TITAN ETERNAL - GOD CONNECT V4</title>
+    <title>TITAN ETERNAL - FINAL DESTINY</title>
     <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -38,26 +38,27 @@
         .icn { width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--accent); background: none; color: #fff; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; }
         .icn.on { background: var(--green); color: #000; box-shadow: 0 0 15px var(--green); }
         .card { background: #0a0a15; padding: 35px; border-radius: 20px; border: 2px solid var(--accent); text-align: center; width: 350px; }
+        @keyframes fly { from{opacity:1; transform:translateY(0);} to{opacity:0; transform:translateY(-200px);} }
     </style>
 </head>
 <body>
     <canvas id="bg-canvas"></canvas>
     <div id="w-auth" class="win">
         <div class="card">
-            <h1 style="color:var(--accent)">TITAN ETERNAL</h1>
+            <h1 style="color:var(--accent)">TITAN FINAL</h1>
             <div id="p-ava" style="width:90px; height:90px; border-radius:50%; border:2px solid var(--accent); margin:15px auto; background:#111 center/cover"></div>
             <input type="file" id="f-ava" hidden onchange="toB64(this, 'p-ava')">
-            <button onclick="document.getElementById('f-ava').click()" style="background:none; border:1px solid; color:var(--accent); cursor:pointer; padding:5px; margin-bottom:15px; font-size:10px">ВЫБРАТЬ ОБЛИК</button>
-            <input type="text" id="i-nick" placeholder="ТВОЙ ПОЗЫВНОЙ" style="width:100%; padding:10px; background:#000; color:#fff; border:1px solid #333;">
-            <button onclick="register()" style="width:100%; padding:15px; background:var(--accent); border:none; border-radius:10px; font-weight:bold; margin-top:15px; cursor:pointer">СОХРАНИТЬ</button>
+            <button onclick="document.getElementById('f-ava').click()" style="background:none; border:1px solid; color:var(--accent); cursor:pointer; padding:5px; margin-bottom:15px; font-size:10px">ОБЛИК</button>
+            <input type="text" id="i-nick" placeholder="НИК" style="width:100%; padding:10px; background:#000; color:#fff; border:1px solid #333;">
+            <button onclick="register()" style="width:100%; padding:15px; background:var(--accent); border:none; border-radius:10px; font-weight:bold; margin-top:15px; cursor:pointer">ВХОД</button>
         </div>
     </div>
     <div id="w-lobby" class="win" style="display:none">
         <div class="card">
             <h2 id="l-nick" style="color:var(--green)"></h2>
             <input type="text" id="i-room" placeholder="ID КОМНАТЫ" style="width:100%; padding:10px; background:#000; color:#fff; border:1px solid #333;">
-            <button onclick="start(true)" style="width:100%; padding:15px; background:var(--green); border:none; border-radius:10px; font-weight:bold; margin:10px 0; cursor:pointer">СОЗДАТЬ УЗЕЛ</button>
-            <button onclick="start(false)" style="width:100%; padding:15px; background:var(--accent); border:none; border-radius:10px; font-weight:bold; cursor:pointer">ПОДКЛЮЧИТЬСЯ</button>
+            <p style="font-size: 9px; color: #888;">Оба введите один ID и заходите!</p>
+            <button onclick="start()" style="width:100%; padding:15px; background:var(--green); border:none; border-radius:10px; font-weight:bold; cursor:pointer">ПОДКЛЮЧИТЬСЯ К УЗЛУ</button>
         </div>
     </div>
     <div id="app">
@@ -80,79 +81,75 @@
         <button id="b-mic" class="icn" onclick="media('audio')">🎙️</button>
         <button id="b-cam" class="icn" onclick="media('video')">📷</button>
         <button id="b-scr" class="icn" onclick="shareScreen()">🖥️</button>
-        <button class="icn" onclick="openSettings()">⚙️</button>
-        <button class="icn" style="background:var(--red)" onclick="exitSession()">🚪</button>
+        <button class="icn" style="background:var(--red)" onclick="location.reload()">🚪</button>
     </div>
 
     <script>
         let myStream = new MediaStream(), peer, myId, conns = {}, currentRoom = '', screenStream = null;
-        let profile = JSON.parse(localStorage.getItem('titan_p')) || {nick:'', ava:'', id: Math.random().toString(36).substr(2,4)};
+        let profile = JSON.parse(localStorage.getItem('titan_p')) || {nick:'', ava:'', id: Math.random().toString(36).substr(2,6)};
         let activeUsers = new Map();
         const sfx = { horn: new Audio('https://www.myinstants.com/media/sounds/mlg-airhorn.mp3'), msg: new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3') };
 
-        const peerCfg = { config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }, { urls: 'stun:stun2.l.google.com:19302' }] } };
-
-        if(profile.nick) { showLobby(); const ar = sessionStorage.getItem('titan_active_room'); if(ar) setTimeout(() => { document.getElementById('i-room').value = ar; start(sessionStorage.getItem('titan_is_host')==='true'); }, 1000); }
+        if(profile.nick) showLobby();
         function toB64(i, t) { const r = new FileReader(); r.onload=e=>{ window.tmpA=e.target.result; document.getElementById(t).style.backgroundImage=`url(${e.target.result})`; }; r.readAsDataURL(i.files[0]); }
         function register() { const n = document.getElementById('i-nick').value; if(!n) return; profile.nick = n; if(window.tmpA) profile.ava = window.tmpA; localStorage.setItem('titan_p', JSON.stringify(profile)); location.reload(); }
-        function openSettings() { document.getElementById('w-auth').style.display='flex'; document.getElementById('i-nick').value = profile.nick; }
-        function showLobby() { document.getElementById('w-auth').style.display='none'; document.getElementById('w-lobby').style.display='flex'; document.getElementById('l-nick').innerText = "ПРИВЕТ, " + profile.nick; }
+        function showLobby() { document.getElementById('w-auth').style.display='none'; document.getElementById('w-lobby').style.display='flex'; document.getElementById('l-nick').innerText = "БОЕЦ: " + profile.nick; }
 
-        function start(h) {
+        function start() {
             currentRoom = document.getElementById('i-room').value.trim(); if(!currentRoom) return;
-            sessionStorage.setItem('titan_active_room', currentRoom);
-            sessionStorage.setItem('titan_is_host', h);
             document.querySelectorAll('.win').forEach(w=>w.style.display='none');
             document.getElementById('app').style.display='flex';
             document.getElementById('main-dock').style.display='flex';
-            loadChat();
             
-            myId = h ? "tt-room-"+currentRoom : "tt-user-"+currentRoom+"-"+profile.id;
-            peer = new Peer(myId, peerCfg);
+            // Теперь ID строится просто: префикс + комната + твой уникальный код
+            myId = "titan-" + currentRoom + "-" + profile.id;
+            peer = new Peer(myId);
             
             addBox(profile.nick, profile.ava, myId, true);
             updateUserList(myId, profile.nick, true);
 
             peer.on('open', (id) => {
-                if(!h) {
-                    const conn = peer.connect("tt-room-"+currentRoom, {metadata: profile, reliable: true});
-                    bind(conn);
+                // Пытаемся найти всех остальных в этой комнате через список подключений PeerJS невозможно, 
+                // поэтому мы просто "слушаем" входящие. Но чтобы друг тебя нашел, он должен знать твой ID.
+                // В этой версии мы используем более простую тактику: КТО ПЕРВЫЙ ЗАШЕЛ, ТОТ ХОСТ.
+                console.log("Connected as: " + id);
+                // Ищем других (попытка коннекта к базовому ID комнаты)
+                const conn = peer.connect("titan-" + currentRoom + "-host", {metadata: profile});
+                if(conn) bind(conn);
+                
+                // Если я первый, я становлюсь хостом для этого ID
+                if(!window.isHostAssigned) {
+                    const hostPeer = new Peer("titan-" + currentRoom + "-host");
+                    hostPeer.on('connection', bind);
+                    hostPeer.on('call', answerCall);
+                    window.isHostAssigned = true;
                 }
             });
 
-            peer.on('connection', (conn) => {
-                bind(conn);
-                // Ответный вызов для видео/аудио
-                if(h) {
-                    const call = peer.call(conn.peer, myStream, {metadata: profile});
-                    call.on('stream', s => pipe(call.peer, s));
-                }
-            });
+            peer.on('connection', bind);
+            peer.on('call', answerCall);
+        }
 
-            peer.on('call', (call) => {
-                call.answer(myStream);
-                addBox(call.metadata?.nick || "Агент", call.metadata?.ava || "", call.peer);
-                updateUserList(call.peer, call.metadata?.nick || "Агент", true);
-                call.on('stream', s => pipe(call.peer, s));
-            });
+        function answerCall(call) {
+            call.answer(myStream);
+            addBox(call.metadata?.nick || "Друг", call.metadata?.ava || "", call.peer);
+            updateUserList(call.peer, call.metadata?.nick || "Друг", true);
+            call.on('stream', s => pipe(call.peer, s));
         }
 
         function bind(c) {
             conns[c.peer] = c;
             c.on('open', () => {
                 c.send({type: 'init', n: profile.nick, a: profile.ava});
-                // Если мы гость, звоним хосту после открытия данных
-                if(c.peer.includes('room')) {
-                    const call = peer.call(c.peer, myStream, {metadata: profile});
-                    call.on('stream', s => pipe(call.peer, s));
-                }
+                const call = peer.call(c.peer, myStream, {metadata: profile});
+                call.on('stream', s => pipe(call.peer, s));
             });
             c.on('data', d => {
                 if(d.type==='init') { addBox(d.n, d.a, c.peer); updateUserList(c.peer, d.n, true); }
                 if(d.type==='msg') { pushChat(d.n, d.m); sfx.msg.play(); }
+                if(d.type==='file') pushChat(d.n, `<img src="${d.v}">`);
                 if(d.type==='emo') showFly(d.v);
                 if(d.type==='sfx') sfx.horn.play();
-                if(d.type==='file') pushChat(d.n, `<img src="${d.v}">`);
                 if(d.type==='scr_on') addBox(d.n, '', c.peer, false, true);
                 if(d.type==='scr_off') document.getElementById('scr-'+c.peer)?.remove();
             });
@@ -176,41 +173,34 @@
                 <div class="pulse-ring" id="p-${id}"></div>
                 <div class="u-nick">${isScr ? '🖥️ '+nick : nick}</div>
                 ${!isMe ? `<div class="vol-ctrl">🔈<input type="range" class="vol-slider" min="0" max="1" step="0.1" value="1" oninput="setVol('${bId}', this.value)"></div>` : ''}
-                ${isScr ? `<button class="fs-btn" onclick="toggleFS('${bId}')">РАЗВЕРНУТЬ</button>` : ''}
+                ${isScr ? `<button class="fs-btn" onclick="toggleFS('${bId}')">FS</button>` : ''}
                 <video id="vid-${bId}" autoplay playsinline ${isMe?'muted':''}></video>
             `;
             document.getElementById('stage').appendChild(b);
         }
 
         function setVol(bId, v) { const vid = document.getElementById('vid-'+bId); if(vid) vid.volume = v; }
-        function toggleFS(id) { const el = document.getElementById(id); const btn = el.querySelector('.fs-btn'); el.classList.toggle('fullscreen'); btn.innerText = el.classList.contains('fullscreen') ? "СВЕРНУТЬ" : "РАЗВЕРНУТЬ"; }
+        function toggleFS(id) { const el = document.getElementById(id); el.classList.toggle('fullscreen'); }
 
         function pipe(id, s) {
             const isScr = s.getVideoTracks()[0]?.label.toLowerCase().includes('screen');
             const vId = isScr ? 'vid-scr-'+id : 'vid-u-'+id;
             const v = document.getElementById(vId); if(!v) return;
             v.srcObject = s;
-            const check = () => {
-                const hasVid = s.getVideoTracks().some(t => t.enabled);
-                if(hasVid) { v.classList.add('active'); if(!isScr) document.getElementById('ava-'+id)?.classList.add('hidden'); }
-                else { v.classList.remove('active'); if(!isScr) document.getElementById('ava-'+id)?.classList.remove('hidden'); }
-            };
-            check();
-            if(s.getAudioTracks().length > 0) {
-                const actx = new (window.AudioContext || window.webkitAudioContext)();
-                const an = actx.createAnalyser(); actx.createMediaStreamSource(s).connect(an);
-                const data = new Uint8Array(an.frequencyBinCount);
-                const loop = () => {
-                    an.getByteFrequencyData(data); const vol = data.reduce((a,b)=>a+b)/data.length;
-                    const ring = document.getElementById('p-'+id);
-                    if(ring) {
-                        ring.style.opacity = vol > 10 ? "1" : "0";
-                        if(v.classList.contains('active')) { ring.style.width="100%"; ring.style.height="100%"; ring.style.borderRadius="12px"; ring.style.transform=`scale(${1+vol/150})`; }
-                        else { ring.style.width="85px"; ring.style.height="85px"; ring.style.borderRadius="50%"; ring.style.transform=`translate(-50%,-50%) scale(${1+vol/30})`; }
-                    }
-                    requestAnimationFrame(loop);
-                }; loop();
-            }
+            v.onloadedmetadata = () => { v.classList.add('active'); if(!isScr) document.getElementById('ava-'+id)?.classList.add('hidden'); };
+            
+            const actx = new (window.AudioContext || window.webkitAudioContext)();
+            const an = actx.createAnalyser(); actx.createMediaStreamSource(s).connect(an);
+            const data = new Uint8Array(an.frequencyBinCount);
+            const loop = () => {
+                an.getByteFrequencyData(data); const vol = data.reduce((a,b)=>a+b)/data.length;
+                const ring = document.getElementById('p-'+id);
+                if(ring) {
+                    ring.style.opacity = vol > 10 ? "1" : "0";
+                    ring.style.transform = isScr ? `scale(${1+vol/200})` : `translate(-50%,-50%) scale(${1+vol/30})`;
+                }
+                requestAnimationFrame(loop);
+            }; loop();
         }
 
         async function media(t) {
@@ -220,21 +210,20 @@
                 const s = await navigator.mediaDevices.getUserMedia(t==='video'?{video:true}:{audio:true});
                 trk = s.getTracks()[0]; myStream.addTrack(trk); btn.classList.add('on');
             } else { trk.enabled = !trk.enabled; trk.enabled ? btn.classList.add('on') : btn.classList.remove('on'); }
-            pipe(myId, myStream);
+            const myV = document.getElementById('vid-u-'+myId);
+            if(myStream.getVideoTracks().some(t=>t.enabled)) { myV.srcObject = myStream; myV.classList.add('active'); document.getElementById('ava-'+myId).classList.add('hidden'); }
+            else { myV.classList.remove('active'); document.getElementById('ava-'+myId).classList.remove('hidden'); }
         }
 
         async function shareScreen() {
             const btn = document.getElementById('b-scr');
             if(!screenStream) {
-                try {
-                    screenStream = await navigator.mediaDevices.getDisplayMedia({video:true});
-                    addBox(profile.nick, '', myId, true, true);
-                    document.getElementById('vid-scr-'+myId).srcObject = screenStream;
-                    document.getElementById('vid-scr-'+myId).classList.add('active');
-                    btn.classList.add('on');
-                    Object.values(conns).forEach(c => { c.send({type:'scr_on', n:profile.nick}); peer.call(c.peer, screenStream); });
-                    screenStream.getVideoTracks()[0].onended = () => shareScreen();
-                } catch(e) {}
+                screenStream = await navigator.mediaDevices.getDisplayMedia({video:true});
+                addBox(profile.nick, '', myId, true, true);
+                const sv = document.getElementById('vid-scr-'+myId); sv.srcObject = screenStream; sv.classList.add('active');
+                btn.classList.add('on');
+                Object.values(conns).forEach(c => { c.send({type:'scr_on', n:profile.nick}); peer.call(c.peer, screenStream); });
+                screenStream.getVideoTracks()[0].onended = () => shareScreen();
             } else {
                 screenStream.getTracks().forEach(t => t.stop()); screenStream = null;
                 btn.classList.remove('on'); document.getElementById('scr-'+myId)?.remove();
@@ -256,20 +245,14 @@
             }; r.readAsDataURL(file);
         }
 
-        function pushChat(n, m, save=true) {
-            const b=document.getElementById('msgs'); b.innerHTML += `<div class="m"><b>${n}</b>: ${m}</div>`;
-            b.scrollTop = b.scrollHeight;
-            if(save) { let h = JSON.parse(localStorage.getItem('chat_'+currentRoom)) || []; h.push({n,m}); localStorage.setItem('chat_'+currentRoom, JSON.stringify(h.slice(-50))); }
-        }
-        function loadChat() { let h = JSON.parse(localStorage.getItem('chat_'+currentRoom)) || []; h.forEach(d => pushChat(d.n, d.m, false)); }
+        function pushChat(n, m) { const b=document.getElementById('msgs'); b.innerHTML += `<div class="m"><b>${n}</b>: ${m}</div>`; b.scrollTop = b.scrollHeight; }
         function sendEmoji(v) { Object.values(conns).forEach(c => c.send({type:'emo', v})); showFly(v); }
         function sendSFX() { Object.values(conns).forEach(c => c.send({type:'sfx'})); sfx.horn.play(); }
         function showFly(v) {
-            const e = document.createElement('div'); e.className='fly'; e.innerText=v; e.style.position='fixed'; e.style.bottom='100px';
+            const e = document.createElement('div'); e.innerText=v; e.style.position='fixed'; e.style.bottom='100px';
             e.style.left=Math.random()*80+'%'; e.style.fontSize='40px'; e.style.animation='fly 2s forwards'; document.body.appendChild(e);
             setTimeout(()=>e.remove(), 2000);
         }
-        function exitSession() { sessionStorage.clear(); location.reload(); }
 
         const canvas = document.getElementById('bg-canvas'); const ctx = canvas.getContext('2d');
         let pts = []; window.onresize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }; window.onresize();
@@ -277,6 +260,5 @@
         function anim() { ctx.clearRect(0,0,canvas.width, canvas.height); ctx.fillStyle="#00f2ff"; pts.forEach(p=>{p.y-=p.s;if(p.y<0)p.y=canvas.height;ctx.beginPath();ctx.arc(p.x,p.y,p.s,0,Math.PI*2);ctx.fill();}); requestAnimationFrame(anim); }
         anim();
     </script>
-    <style>@keyframes fly { from{opacity:1; transform:translateY(0);} to{opacity:0; transform:translateY(-200px);} }</style>
 </body>
 </html>
