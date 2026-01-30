@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mega P2P Chat</title>
+    <title>Mega P2P Voice & Screen</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
@@ -20,7 +20,7 @@
         <div id="setup-screen" class="centered" style="display: none;">
             <div class="glass-card">
                 <h2 id="welcome-msg"></h2>
-                <input type="text" id="room-id" placeholder="Название комнаты...">
+                <input type="text" id="room-id" placeholder="ID комнаты (например: friends123)">
                 <button id="join-btn">Создать / Присоединиться</button>
             </div>
         </div>
@@ -41,46 +41,29 @@
                 <div class="side-panel">
                     <div class="room-header">
                         <span id="room-name-display"></span>
-                        <button id="copy-link-btn">🔗 Ссылка</button>
-                    </div>
-                    <div id="soundboard">
-                        <button onclick="sendSound('😂')">😂</button>
-                        <button onclick="sendSound('🥁')">🥁</button>
-                        <button onclick="sendSound('🔥')">🔥</button>
+                        <button id="copy-link-btn" title="Копировать ID">🔗 ID</button>
                     </div>
                     <div id="chat-messages"></div>
-                    <input type="text" id="chat-input" placeholder="Сообщение...">
+                    <div id="soundboard">
+                        <button onclick="sendEmoji('😂')">😂</button>
+                        <button onclick="sendEmoji('🔥')">🔥</button>
+                        <button onclick="sendEmoji('👍')">👍</button>
+                    </div>
+                    <div class="chat-input-area">
+                        <input type="text" id="chat-input" placeholder="Сообщение...">
+                        <button id="send-msg-btn">➤</button>
+                    </div>
                 </div>
             </div>
 
             <div class="bottom-controls">
-                <button onclick="toggleMic()" id="mic-btn">🎤</button>
-                <button onclick="toggleCam()" id="cam-btn">📷</button>
-                <button id="screen-btn">🖥️ Экран</button>
-                <button id="settings-btn">⚙️</button>
-                <button onclick="location.reload()" class="exit">🛑</button>
+                <button onclick="toggleMic()" id="mic-btn" class="ctrl-btn">🎤</button>
+                <button onclick="toggleCam()" id="cam-btn" class="ctrl-btn">📷</button>
+                <button id="screen-btn" class="ctrl-btn">🖥️ Экран</button>
+                <button onclick="location.reload()" class="exit-btn">🛑 Выйти</button>
             </div>
         </div>
     </div>
-
-    <div id="settings-modal" class="modal">
-        <div class="modal-content">
-            <h3>Настройки оборудования</h3>
-            <label>Микрофон:</label>
-            <select id="mic-select"></select>
-            <div class="mic-test"><div id="mic-test-bar"></div></div>
-            <label>Динамики:</label>
-            <select id="speaker-select"></select>
-            <hr>
-            <label>Качество стрима:</label>
-            <select id="fps-select">
-                <option value="30">30 FPS</option>
-                <option value="60">60 FPS (Ultra)</option>
-            </select>
-            <button onclick="closeSettings()">Готово</button>
-        </div>
-    </div>
-
     <script src="script.js"></script>
 </body>
 </html>
