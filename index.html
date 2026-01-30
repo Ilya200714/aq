@@ -2,13 +2,13 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>TITAN ETERNAL V32 - GLOBAL CONNECT</title>
+    <title>TITAN ETERNAL - GOD CONNECT V4</title>
     <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { 
             --bg: #020205; --side: rgba(10, 10, 15, 0.95); --card: rgba(20, 20, 35, 0.8); 
-            --accent: #00f2ff; --neon-p: #bc13fe; --green: #39ff14; --red: #ff3131; --text: #e0e0ff; 
+            --accent: #00f2ff; --green: #39ff14; --red: #ff3131; --text: #e0e0ff; 
         }
         * { box-sizing: border-box; font-family: 'Orbitron', sans-serif; }
         body { margin: 0; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
@@ -30,23 +30,21 @@
         .side { width: 340px; background: var(--side); border-left: 2px solid var(--accent); display: flex; flex-direction: column; }
         #user-list { padding: 15px; border-bottom: 1px solid #222; background: rgba(0,0,0,0.3); }
         .u-item { font-size: 12px; margin-bottom: 5px; color: var(--green); display: flex; align-items: center; gap: 8px; }
-        .u-item::before { content: "●"; font-size: 8px; animation: blink 1s infinite; }
         #msgs { flex: 1; overflow-y: auto; padding: 15px; scrollbar-width: none; }
-        .m { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid var(--accent); font-size: 11px; word-break: break-all; }
+        .m { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid var(--accent); font-size: 11px; }
         .m img { max-width: 100%; border-radius: 8px; margin-top: 5px; border: 1px solid var(--accent); }
         .chat-tools { padding: 12px; background: #000; border-top: 1px solid #222; }
         .dock { height: 80px; background: #000; border-top: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; gap: 20px; }
         .icn { width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--accent); background: none; color: #fff; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; }
         .icn.on { background: var(--green); color: #000; box-shadow: 0 0 15px var(--green); }
         .card { background: #0a0a15; padding: 35px; border-radius: 20px; border: 2px solid var(--accent); text-align: center; width: 350px; }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
     </style>
 </head>
 <body>
     <canvas id="bg-canvas"></canvas>
     <div id="w-auth" class="win">
         <div class="card">
-            <h1 id="auth-header" style="color:var(--accent)">TITAN GLOBAL</h1>
+            <h1 style="color:var(--accent)">TITAN ETERNAL</h1>
             <div id="p-ava" style="width:90px; height:90px; border-radius:50%; border:2px solid var(--accent); margin:15px auto; background:#111 center/cover"></div>
             <input type="file" id="f-ava" hidden onchange="toB64(this, 'p-ava')">
             <button onclick="document.getElementById('f-ava').click()" style="background:none; border:1px solid; color:var(--accent); cursor:pointer; padding:5px; margin-bottom:15px; font-size:10px">ВЫБРАТЬ ОБЛИК</button>
@@ -65,7 +63,7 @@
     <div id="app">
         <div class="stage" id="stage"></div>
         <div class="side">
-            <div id="user-list"><div style="font-size: 10px; color: var(--accent); margin-bottom: 10px; letter-spacing: 2px;">В КОРПУСЕ:</div><div id="u-items"></div></div>
+            <div id="user-list"><div style="font-size: 10px; color: var(--accent); margin-bottom: 10px;">В КОРПУСЕ:</div><div id="u-items"></div></div>
             <div id="msgs"></div>
             <div class="chat-tools">
                 <div style="display:flex; gap:10px; justify-content:center; margin-bottom:10px;">
@@ -92,20 +90,12 @@
         let activeUsers = new Map();
         const sfx = { horn: new Audio('https://www.myinstants.com/media/sounds/mlg-airhorn.mp3'), msg: new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3') };
 
-        // ГЛОБАЛЬНЫЙ КОНФИГ (STUN сервера)
-        const peerCfg = {
-            config: { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }, { 'urls': 'stun:stun1.l.google.com:19302' }] }
-        };
+        const peerCfg = { config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }, { urls: 'stun:stun2.l.google.com:19302' }] } };
 
-        if(profile.nick) {
-            showLobby();
-            const autoRoom = sessionStorage.getItem('titan_active_room');
-            if(autoRoom) setTimeout(() => { document.getElementById('i-room').value = autoRoom; start(sessionStorage.getItem('titan_is_host') === 'true'); }, 1000);
-        }
-
+        if(profile.nick) { showLobby(); const ar = sessionStorage.getItem('titan_active_room'); if(ar) setTimeout(() => { document.getElementById('i-room').value = ar; start(sessionStorage.getItem('titan_is_host')==='true'); }, 1000); }
         function toB64(i, t) { const r = new FileReader(); r.onload=e=>{ window.tmpA=e.target.result; document.getElementById(t).style.backgroundImage=`url(${e.target.result})`; }; r.readAsDataURL(i.files[0]); }
         function register() { const n = document.getElementById('i-nick').value; if(!n) return; profile.nick = n; if(window.tmpA) profile.ava = window.tmpA; localStorage.setItem('titan_p', JSON.stringify(profile)); location.reload(); }
-        function openSettings() { document.getElementById('w-auth').style.display='flex'; document.getElementById('auth-header').innerText="НАСТРОЙКИ"; document.getElementById('i-nick').value = profile.nick; }
+        function openSettings() { document.getElementById('w-auth').style.display='flex'; document.getElementById('i-nick').value = profile.nick; }
         function showLobby() { document.getElementById('w-auth').style.display='none'; document.getElementById('w-lobby').style.display='flex'; document.getElementById('l-nick').innerText = "ПРИВЕТ, " + profile.nick; }
 
         function start(h) {
@@ -117,7 +107,7 @@
             document.getElementById('main-dock').style.display='flex';
             loadChat();
             
-            myId = h ? "global-"+currentRoom : "global-"+currentRoom+"-"+profile.id;
+            myId = h ? "tt-room-"+currentRoom : "tt-user-"+currentRoom+"-"+profile.id;
             peer = new Peer(myId, peerCfg);
             
             addBox(profile.nick, profile.ava, myId, true);
@@ -125,28 +115,54 @@
 
             peer.on('open', (id) => {
                 if(!h) {
-                    const conn = peer.connect("global-"+currentRoom, {metadata: profile});
+                    const conn = peer.connect("tt-room-"+currentRoom, {metadata: profile, reliable: true});
                     bind(conn);
-                    const call = peer.call("global-"+currentRoom, myStream, {metadata: profile});
+                }
+            });
+
+            peer.on('connection', (conn) => {
+                bind(conn);
+                // Ответный вызов для видео/аудио
+                if(h) {
+                    const call = peer.call(conn.peer, myStream, {metadata: profile});
                     call.on('stream', s => pipe(call.peer, s));
                 }
             });
 
-            peer.on('connection', bind);
-            peer.on('call', call => {
+            peer.on('call', (call) => {
                 call.answer(myStream);
-                addBox(call.metadata?.nick || "Agent", call.metadata?.ava || "", call.peer);
-                updateUserList(call.peer, call.metadata?.nick || "Agent", true);
+                addBox(call.metadata?.nick || "Агент", call.metadata?.ava || "", call.peer);
+                updateUserList(call.peer, call.metadata?.nick || "Агент", true);
                 call.on('stream', s => pipe(call.peer, s));
             });
-            
-            peer.on('error', err => { console.error("PeerJS Error:", err); if(err.type === 'peer-disconnected') location.reload(); });
+        }
+
+        function bind(c) {
+            conns[c.peer] = c;
+            c.on('open', () => {
+                c.send({type: 'init', n: profile.nick, a: profile.ava});
+                // Если мы гость, звоним хосту после открытия данных
+                if(c.peer.includes('room')) {
+                    const call = peer.call(c.peer, myStream, {metadata: profile});
+                    call.on('stream', s => pipe(call.peer, s));
+                }
+            });
+            c.on('data', d => {
+                if(d.type==='init') { addBox(d.n, d.a, c.peer); updateUserList(c.peer, d.n, true); }
+                if(d.type==='msg') { pushChat(d.n, d.m); sfx.msg.play(); }
+                if(d.type==='emo') showFly(d.v);
+                if(d.type==='sfx') sfx.horn.play();
+                if(d.type==='file') pushChat(d.n, `<img src="${d.v}">`);
+                if(d.type==='scr_on') addBox(d.n, '', c.peer, false, true);
+                if(d.type==='scr_off') document.getElementById('scr-'+c.peer)?.remove();
+            });
+            c.on('close', () => { document.getElementById('u-'+c.peer)?.remove(); updateUserList(c.peer, '', false); });
         }
 
         function updateUserList(id, nick, add) {
             if(add) activeUsers.set(id, nick); else activeUsers.delete(id);
-            const container = document.getElementById('u-items');
-            container.innerHTML = ''; activeUsers.forEach((name) => { container.innerHTML += `<div class="u-item">${name}</div>`; });
+            const container = document.getElementById('u-items'); container.innerHTML = '';
+            activeUsers.forEach((name) => { container.innerHTML += `<div class="u-item">● ${name}</div>`; });
         }
 
         function addBox(nick, ava, id, isMe, isScr = false) {
@@ -169,33 +185,21 @@
         function setVol(bId, v) { const vid = document.getElementById('vid-'+bId); if(vid) vid.volume = v; }
         function toggleFS(id) { const el = document.getElementById(id); const btn = el.querySelector('.fs-btn'); el.classList.toggle('fullscreen'); btn.innerText = el.classList.contains('fullscreen') ? "СВЕРНУТЬ" : "РАЗВЕРНУТЬ"; }
 
-        function bind(c) {
-            conns[c.peer] = c;
-            c.on('data', d => {
-                if(d.type==='msg') { pushChat(d.n, d.m); sfx.msg.play(); }
-                if(d.type==='emo') showFly(d.v);
-                if(d.type==='sfx') sfx.horn.play();
-                if(d.type==='file') pushChat(d.n, `<img src="${d.v}">`);
-                if(d.type==='scr_on') addBox(d.n, '', c.peer, false, true);
-                if(d.type==='scr_off') document.getElementById('scr-'+c.peer)?.remove();
-            });
-            c.on('close', () => { document.getElementById('u-'+c.peer)?.remove(); updateUserList(c.peer, '', false); });
-        }
-
         function pipe(id, s) {
             const isScr = s.getVideoTracks()[0]?.label.toLowerCase().includes('screen');
             const vId = isScr ? 'vid-scr-'+id : 'vid-u-'+id;
             const v = document.getElementById(vId); if(!v) return;
             v.srcObject = s;
-            const checkVideo = () => {
+            const check = () => {
                 const hasVid = s.getVideoTracks().some(t => t.enabled);
                 if(hasVid) { v.classList.add('active'); if(!isScr) document.getElementById('ava-'+id)?.classList.add('hidden'); }
                 else { v.classList.remove('active'); if(!isScr) document.getElementById('ava-'+id)?.classList.remove('hidden'); }
             };
-            checkVideo();
+            check();
             if(s.getAudioTracks().length > 0) {
-                const actx = new AudioContext(); const an = actx.createAnalyser(); 
-                actx.createMediaStreamSource(s).connect(an); const data = new Uint8Array(an.frequencyBinCount);
+                const actx = new (window.AudioContext || window.webkitAudioContext)();
+                const an = actx.createAnalyser(); actx.createMediaStreamSource(s).connect(an);
+                const data = new Uint8Array(an.frequencyBinCount);
                 const loop = () => {
                     an.getByteFrequencyData(data); const vol = data.reduce((a,b)=>a+b)/data.length;
                     const ring = document.getElementById('p-'+id);
@@ -246,12 +250,10 @@
 
         function sendFile(input) {
             const file = input.files[0]; if(!file) return;
-            const reader = new FileReader();
-            reader.onload = e => {
+            const r = new FileReader(); r.onload = e => {
                 Object.values(conns).forEach(c => c.send({type:'file', n:profile.nick, v:e.target.result}));
                 pushChat("Я", `<img src="${e.target.result}">`);
-            };
-            reader.readAsDataURL(file);
+            }; r.readAsDataURL(file);
         }
 
         function pushChat(n, m, save=true) {
@@ -263,8 +265,8 @@
         function sendEmoji(v) { Object.values(conns).forEach(c => c.send({type:'emo', v})); showFly(v); }
         function sendSFX() { Object.values(conns).forEach(c => c.send({type:'sfx'})); sfx.horn.play(); }
         function showFly(v) {
-            const e = document.createElement('div'); e.className='fly'; e.innerText=v;
-            e.style.left=Math.random()*80+'%'; document.body.appendChild(e);
+            const e = document.createElement('div'); e.className='fly'; e.innerText=v; e.style.position='fixed'; e.style.bottom='100px';
+            e.style.left=Math.random()*80+'%'; e.style.fontSize='40px'; e.style.animation='fly 2s forwards'; document.body.appendChild(e);
             setTimeout(()=>e.remove(), 2000);
         }
         function exitSession() { sessionStorage.clear(); location.reload(); }
@@ -275,5 +277,6 @@
         function anim() { ctx.clearRect(0,0,canvas.width, canvas.height); ctx.fillStyle="#00f2ff"; pts.forEach(p=>{p.y-=p.s;if(p.y<0)p.y=canvas.height;ctx.beginPath();ctx.arc(p.x,p.y,p.s,0,Math.PI*2);ctx.fill();}); requestAnimationFrame(anim); }
         anim();
     </script>
+    <style>@keyframes fly { from{opacity:1; transform:translateY(0);} to{opacity:0; transform:translateY(-200px);} }</style>
 </body>
 </html>
