@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>P2P Mega Chat - Full Version</title>
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        :root { --primary: #3d5afe; --bg: #0b0e14; --card: #1a1c23; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; overflow: hidden; }
+        .centered { height: 100vh; display: flex; justify-content: center; align-items: center; }
+        .card { background: var(--card); padding: 30px; border-radius: 20px; text-align: center; width: 320px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        input { width: 90%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #333; background: #0b0e14; color: white; }
+        button { padding: 12px 20px; border: none; border-radius: 8px; background: var(--primary); color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { opacity: 0.8; }
+        
+        /* Сетка видео */
+        #chat-screen { display: none; height: 100vh; flex-direction: column; }
+        #video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; padding: 20px; flex-grow: 1; overflow-y: auto; }
+        .video-container { position: relative; background: #000; border-radius: 15px; overflow: hidden; aspect-ratio: 16/9; }
+        video { width: 100%; height: 100%; object-fit: cover; }
+        .name-tag { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 5px; font-size: 14px; }
+
+        /* Панель управления */
+        .controls { background: var(--card); padding: 15px; display: flex; justify-content: center; gap: 15px; align-items: center; border-top: 1px solid #333; }
+        .chat-btn { background: #444; }
+        .exit-btn { background: #f44336; }
+        
+        /* Мини-чат поверх видео */
+        #mini-chat { position: fixed; right: 20px; bottom: 100px; width: 250px; max-height: 300px; overflow-y: auto; z-index: 100; pointer-events: none; }
+        .msg { background: rgba(0,0,0,0.7); padding: 8px; border-radius: 8px; margin-bottom: 5px; font-size: 13px; pointer-events: auto; }
+    </style>
+</head>
+<body>
+
+    <div id="screen-auth" class="centered">
+        <div class="card">
+            <h2>Твой ник</h2>
+            <input type="text" id="nick-in" placeholder="Например: Иван">
+            <button onclick="toLobby()">Войти в систему</button>
+        </div>
+    </div>
+
+    <div id="screen-lobby" class="centered" style="display: none;">
+        <div class="card">
+            <h2 id="greet"></h2>
+            <input type="text" id="room-in" placeholder="ID комнаты (любой)">
+            <div style="display: flex; gap: 10px;">
+                <button onclick="startApp(true)" style="background: #4caf50; flex: 1;">СОЗДАТЬ</button>
+                <button onclick="startApp(false)" style="flex: 1;">ВОЙТИ</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="chat-screen">
+        <div id="video-grid"></div>
+        <div id="mini-chat"></div>
+        
+        <div class="controls">
+            <button id="btn-mic" onclick="toggle('audio')">🎤</button>
+            <button id="btn-cam" onclick="toggle('video')">📷</button>
+            <button onclick="sendEmoji('🔥')">🔥</button>
+            <button onclick="sendEmoji('😂')">😂</button>
+            <button class="exit-btn" onclick="location.reload()">ВЫЙТИ</button>
+        </div>
+    </div>
+
+    <script>
+        let myStream, peer;
+        let myNick = "";
+        let conns = [];
+
+        function toLobby() {
+            myNick = document.getElementById('nick-in').value;
+            if(!myNick) return alert("Введи ник!");
+            document.getElementById('screen-auth').style.display = 'none';
+            document.getElementById('screen-lobby').style.display = 'flex';
+            document.getElementById('greet').innerText = "Привет, " + myNick;
+        }
+
+        async function startApp(isHost) {
+            const room = document.getElementById('room-in').value;
+            if(!room) return alert("Введи ID комнаты!");
+
+            try {
+                myStream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 1280, height: 720 },
+                    audio: { echoCancellation: true, noiseSuppression: true }
+                });
+            } catch (e) {
+                alert("Камера заблокирована! Если ты открыл файл с ПК, это нормально. Нужен HTTPS.");
+                // Для тестов создаем "пустой" поток, если камеры нет
+            }
+
+            document.getElementById('screen-lobby').style.display = 'none';
+            document.getElementById('chat-screen').style.display = 'flex';
+
+            const myId = isHost ? "room-" + room : "room-" + room + "-" + Math.floor(Math.random()*9999);
+            peer = new Peer(myId, {
+                config: {'iceServers': [{ url: 'stun:stun.l.google.com:19302' }]}
+            });
+
+            peer.on('open', id => {
+                addVideo(myNick, myStream, true, id);
+                if(!isHost) {
+                    const hostId = "room-" + room;
+                    const call = peer.call(hostId, myStream, {metadata: {n: myNick}});
+                    call.on('stream', s => addVideo("Создатель", s, false, hostId));
+                    setupData(peer.connect(hostId));
+                }
+            });
+
+            peer.on('call', call => {
+                call.answer(myStream);
+                call.on('stream', s => addVideo(call.metadata?.n || "Друг", s, false, call.peer));
+            });
+
+            peer.on('connection', conn => setupData(conn));
+        }
+
+        function addVideo(nick, stream, isMe, id) {
+            if(document.getElementById('v-'+id)) return;
+            const grid = document.getElementById('video-grid');
+            const cont = document.createElement('div');
+            cont.id = 'v-'+id;
+            cont.className = 'video-container';
+            cont.innerHTML = `<div class="name-tag">${nick}</div>`;
+            const v = document.createElement('video');
+            v.srcObject = stream;
+            v.autoplay = true;
+            v.muted = isMe;
+            cont.appendChild(v);
+            grid.appendChild(cont);
+        }
+
+        function setupData(conn) {
+            conns.push(conn);
+            conn.on('data', data => {
+                if(data.type === 'emoji') showEmoji(data.e);
+            });
+        }
+
+        function sendEmoji(e) {
+            conns.forEach(c => c.send({type: 'emoji', e: e}));
+            showEmoji(e);
+        }
+
+        function showEmoji(e) {
+            const chat = document.getElementById('mini-chat');
+            const m = document.createElement('div');
+            m.className = 'msg';
+            m.innerText = "Реакция: " + e;
+            chat.appendChild(m);
+            setTimeout(() => m.remove(), 3000);
+        }
+
+        function toggle(type) {
+            const track = type === 'audio' ? myStream.getAudioTracks()[0] : myStream.getVideoTracks()[0];
+            track.enabled = !track.enabled;
+            document.getElementById('btn-'+(type==='audio'?'mic':'cam')).style.background = track.enabled ? "" : "#f44336";
+        }
+    </script>
+</body>
+</html>
